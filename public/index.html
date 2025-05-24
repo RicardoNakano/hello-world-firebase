@@ -18,7 +18,7 @@
   <script type="module">
     // Importar Firebase SDK
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     // Importar firebaseConfig
     import { firebaseConfig } from './config.js';
 
@@ -28,20 +28,36 @@
 
     // Função pra login com Google
     window.signInWithGoogle = function() {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider)
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
         .then((result) => {
+        const user = result.user;
+        document.getElementById('user-info').innerText = `Bem-vindo, ${user.displayName}!`;
+        document.getElementById('sign-in-button').style.display = 'none';
+        document.getElementById('sign-out-button').style.display = 'block';
+        fetchCloudFunction();
+        })
+        .catch((error) => {
+        console.error('Erro ao fazer login:', error);
+        document.getElementById('user-info').innerText = 'Erro ao fazer login: ' + error.message;
+        });
+    };
+
+    // Lidar com o resultado do redirecionamento
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
           const user = result.user;
           document.getElementById('user-info').innerText = `Bem-vindo, ${user.displayName}!`;
           document.getElementById('sign-in-button').style.display = 'none';
           document.getElementById('sign-out-button').style.display = 'block';
           fetchCloudFunction();
-        })
-        .catch((error) => {
-          console.error('Erro ao fazer login:', error);
-          document.getElementById('user-info').innerText = 'Erro ao fazer login: ' + error.message;
-        });
-    };
+        }
+      })
+      .catch((error) => {
+        console.error('Erro ao processar o redirecionamento:', error);
+        document.getElementById('user-info').innerText = 'Erro ao processar o login: ' + error.message;
+      });
 
     // Função pra logout
     window.signOut = function() {
