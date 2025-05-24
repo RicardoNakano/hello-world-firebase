@@ -1,19 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <title>Hello World</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello World com Google Auth</title>
 </head>
 <body>
   <h1>Meu Site</h1>
+  <div id="auth-section">
+    <button id="sign-in-button" onclick="signInWithGoogle()">Entrar com Google</button>
+    <button id="sign-out-button" onclick="signOut()" style="display: none;">Sair</button>
+    <p id="user-info"></p>
+  </div>
   <p id="mensagem"></p>
-  <script>
-    // JavaScript que chama sua Cloud Function
-    fetch('https://us-central1-hello-world-firebase-f1b5d.cloudfunctions.net/helloWorld')
-      .then(response => response.text())
-      .then(data => {
-        document.getElementById('mensagem').innerText = data; // Mostra "Hello World!"
-      })
-      .catch(error => console.error('Erro:', error));
+
+  <!-- Firebase SDK como módulo -->
+  <script type="module">
+    // Importar Firebase SDK
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+    // Configuração do Firebase
+    // Importar firebaseConfig
+    import { firebaseConfig } from './config.js';
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Função pra login com Google
+    window.signInWithGoogle = function() {
+      const provider = new GoogleAuthProvider();
+      signInWithPopup(auth, provider)
+        .then((result) => {
+          const user = result.user;
+          document.getElementById('user-info').innerText = `Bem-vindo, ${user.displayName}!`;
+          document.getElementById('sign-in-button').style.display = 'none';
+          document.getElementById('sign-out-button').style.display = 'block';
+          fetchCloudFunction();
+        })
+        .catch((error) => {
+          console.error('Erro ao fazer login:', error);
+          document.getElementById('user-info').innerText = 'Erro ao fazer login: ' + error.message;
+        });
+    };
+
+    // Função pra logout
+    window.signOut = function() {
+      signOut(auth)
+        .then(() => {
+          document.getElementById('user-info').innerText = 'Você saiu.';
+          document.getElementById('sign-in-button').style.display = 'block';
+          document.getElementById('sign-out-button').style.display = 'none';
+          document.getElementById('mensagem').innerText = '';
+        })
+        .catch((error) => {
+          console.error('Erro ao sair:', error);
+          document.getElementById('user-info').innerText = 'Erro ao sair: ' + error.message;
+        });
+    };
+
+    // Monitorar estado de autenticação
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('user-info').innerText = `Bem-vindo, ${user.displayName}!`;
+        document.getElementById('sign-in-button').style.display = 'none';
+        document.getElementById('sign-out-button').style.display = 'block';
+        fetchCloudFunction();
+      } else {
+        document.getElementById('user-info').innerText = 'Nenhum usuário logado.';
+        document.getElementById('sign-in-button').style.display = 'block';
+        document.getElementById('sign-out-button').style.display = 'none';
+        document.getElementById('mensagem').innerText = '';
+      }
+    });
+
+    // Chamar a Cloud Function
+    function fetchCloudFunction() {
+      fetch('https://us-central1-hello-world-firebase-f1b5d.cloudfunctions.net/helloWorld')
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('mensagem').innerText = data;
+        })
+        .catch(error => console.error('Erro:', error));
+    }
   </script>
 </body>
 </html>
