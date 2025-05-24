@@ -13,7 +13,7 @@ const twitterClient = new TwitterApi({
   accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
 });
 
-// Função helloWorld (já existente)
+// Função helloWorld
 exports.helloWorld = functions.https.onRequest((request, response) => {
   response.set('Access-Control-Allow-Origin', '*');
   response.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -41,27 +41,23 @@ exports.helloWorld = functions.https.onRequest((request, response) => {
     });
 });
 
-// Novo webhook para postar tweet
+// Função postTweet
 exports.postTweet = functions.https.onRequest(async (request, response) => {
-  // Configurar cabeçalhos CORS
   response.set('Access-Control-Allow-Origin', '*');
   response.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   response.set('Access-Control-Allow-Headers', 'Content-Type');
   response.set('Access-Control-Max-Age', '3600');
 
-  // Lidar com requisições OPTIONS (preflight)
   if (request.method === 'OPTIONS') {
     response.status(204).send('');
     return;
   }
 
-  // Verificar se é uma requisição POST
   if (request.method !== 'POST') {
     response.status(405).send('Method Not Allowed: Use POST');
     return;
   }
 
-  // Obter o texto do tweet do corpo da requisição
   const tweetText = request.body.text;
   if (!tweetText || typeof tweetText !== 'string') {
     response.status(400).send('Bad Request: Missing or invalid "text" in body');
@@ -69,7 +65,6 @@ exports.postTweet = functions.https.onRequest(async (request, response) => {
   }
 
   try {
-    // Postar o tweet usando o cliente do Twitter
     const tweet = await twitterClient.v2.tweet(tweetText);
     response.status(200).send({
       success: true,
@@ -83,4 +78,34 @@ exports.postTweet = functions.https.onRequest(async (request, response) => {
       message: 'Error posting tweet: ' + error.message
     });
   }
+});
+
+// Nova função para fornecer o firebaseConfig
+exports.getFirebaseConfig = functions.https.onRequest((request, response) => {
+  response.set('Access-Control-Allow-Origin', '*');
+  response.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  response.set('Access-Control-Allow-Headers', 'Content-Type');
+  response.set('Access-Control-Max-Age', '3600');
+
+  if (request.method === 'OPTIONS') {
+    response.status(204).send('');
+    return;
+  }
+
+  if (request.method !== 'GET') {
+    response.status(405).send('Method Not Allowed: Use GET');
+    return;
+  }
+
+  const firebaseConfig = {
+    apiKey: process.env.APP_API_KEY,
+    authDomain: process.env.APP_AUTH_DOMAIN,
+    projectId: process.env.APP_PROJECT_ID,
+    storageBucket: process.env.APP_STORAGE_BUCKET,
+    messagingSenderId: process.env.APP_MESSAGING_SENDER_ID,
+    appId: process.env.APP_APP_ID,
+    measurementId: process.env.APP_MEASUREMENT_ID
+  };
+
+  response.status(200).json(firebaseConfig);
 });
