@@ -19,8 +19,6 @@
     // Importar Firebase SDK
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-
-    // Configuração do Firebase
     // Importar firebaseConfig
     import { firebaseConfig } from './config.js';
 
@@ -75,14 +73,26 @@
       }
     });
 
-    // Chamar a Cloud Function
-    function fetchCloudFunction() {
-      fetch('https://us-central1-hello-world-firebase-f1b5d.cloudfunctions.net/helloWorld')
-        .then(response => response.text())
-        .then(data => {
+    // Chamar a Cloud Function com token de autenticação
+    async function fetchCloudFunction() {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const idToken = await user.getIdToken();
+          const response = await fetch('https://us-central1-hello-world-firebase-f1b5d.cloudfunctions.net/helloWorld', {
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
+          const data = await response.text();
           document.getElementById('mensagem').innerText = data;
-        })
-        .catch(error => console.error('Erro:', error));
+        } catch (error) {
+          console.error('Erro:', error);
+          document.getElementById('mensagem').innerText = 'Erro ao chamar a função: ' + error.message;
+        }
+      } else {
+        document.getElementById('mensagem').innerText = 'Faça login para acessar a função.';
+      }
     }
   </script>
 </body>

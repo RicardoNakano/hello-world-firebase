@@ -1,11 +1,24 @@
 const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+admin.initializeApp();
 
 exports.helloWorld = functions.https.onRequest((request, response) => {
-  // Adiciona cabeçalhos CORS
-  response.set('Access-Control-Allow-Origin', '*'); // Permite todos os domínios (ou use 'https://hello-world-firebase-f1b5d.web.app' pra ser específico)
-  response.set('Access-Control-Allow-Methods', 'GET, POST'); // Métodos permitidos
-  response.set('Access-Control-Allow-Headers', 'Content-Type'); // Cabeçalhos permitidos
+  response.set('Access-Control-Allow-Origin', '*');
+  response.set('Access-Control-Allow-Methods', 'GET, POST');
+  response.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // Responde com "Hello World!"
-  response.send('Hello World!');
+  const authHeader = request.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    response.status(401).send('Unauthorized');
+    return;
+  }
+
+  const idToken = authHeader.split('Bearer ')[1];
+  admin.auth().verifyIdToken(idToken)
+    .then((decodedToken) => {
+      response.send(`Hello World! Bem-vindo, ${decodedToken.name || 'usuário'}!`);
+    })
+    .catch((error) => {
+      response.status(401).send('Unauthorized: ' + error.message);
+    });
 });
